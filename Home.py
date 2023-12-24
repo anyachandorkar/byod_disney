@@ -19,7 +19,7 @@ if uploaded_file is not None:
 
         # Check for missing values
         if df.isnull().any().any():
-            st.warning("Warning: The dataset contains missing values. Please clean the dataset.")
+            st.warning("Warning: The dataset contains missing values. Please clean the dataset before proceeding.")
         else:
             st.success("The dataset appears to be clean and ready for analysis. Please choose a problem type in the sidebar.")
 
