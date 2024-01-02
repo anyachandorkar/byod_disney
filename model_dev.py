@@ -1,49 +1,14 @@
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from xgboost import XGBClassifier, XGBRegressor
-from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st 
-from sklearn.base import BaseEstimator, TransformerMixin
-models = {
-        "Random Forest (Classifier)": [RandomForestClassifier(), 'feature_importances_'],
-        "XGBoost (Classifier)": [XGBClassifier(), 'feature_importances_'],
-        "Logistic Regression": [LogisticRegression(),'coef_'],
-        "K-Nearest Neighbors (Classifier)": [KNeighborsClassifier()],
-        "Random Forest (Regressor)": [RandomForestRegressor(), 'feature_importances_'],
-        "XGBoost (Regressor)": [XGBRegressor(),'feature_importances_'],
-        "Linear Regression": [LinearRegression(),'coef_'],
-        "K-Nearest Neighbors (Regressor)": [KNeighborsRegressor()]
-    }
-metrics = {'Confusion Matrix': confusion_matrix,
-    'Accuracy': accuracy_score,
-    'Precision': precision_score,
-    'Recall': recall_score,
-    'F1 Score': f1_score,
-    'MAE': mean_absolute_error,
-    'MSE': mean_squared_error,
-    'RMSE': lambda y_true, y_pred: np.sqrt(mean_squared_error(y_true, y_pred)),
-    'R2': r2_score,
-    'Adjusted R2': lambda y_true, y_pred, X: 1 - (1 - r2_score(y_true, y_pred)) * (len(y_true) - 1) / (len(y_true) - X.shape[1] - 1)}
-
-class ColumnSelector(BaseEstimator, TransformerMixin):
-    def __init__(self, columns):
-        self.columns = columns
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        return X[self.columns]
+import maps 
+from sklearn.decomposition import PCA
     
-def preprocess_data(X, text_columns):
+def preprocess_data(X, text_columns=[]):
     """
     Preprocess the data by selecting numerical and categorical columns and creating a preprocessor.
     """
@@ -68,7 +33,7 @@ def fit_model(X_train, y_train, preprocessor, user_model):
     """
     Fit the model on the training data.
     """
-    model = models[user_model][0]
+    model = maps.sup_models[user_model][0]
     num_classes = len(np.unique(y_train))
     y_train_encoded = LabelEncoder().fit_transform(y_train)
     pipeline = Pipeline(steps=[
@@ -92,17 +57,17 @@ def evaluate_model(y_true, y_pred, metric, X, average='binary'):
     """
     y_true_encoded = LabelEncoder().fit_transform(y_true)
     if metric == "Adjusted R2":
-        return metrics[metric](y_true, y_pred, X)
+        return maps.metrics[metric](y_true, y_pred, X)
     if metric in ['Precision', 'Recall', 'F1 Score']:
-        return metrics[metric](y_true_encoded, y_pred, average=average)
+        return maps.metrics[metric](y_true_encoded, y_pred, average=average)
     else:
-        return metrics[metric](y_true_encoded, y_pred)
+        return maps.metrics[metric](y_true_encoded, y_pred)
 
 def feature_importances(model_name, trained_model, top_n=12):
     if model_name in ("K-Nearest Neighbors (Regressor)", "K-Nearest Neighbors (Classifier)"):
         st.write("No feature importances applicable for this model")
         return 
-    attr = models[model_name][1]
+    attr = maps.sup_models[model_name][1]
     if model_name in ('Logistic Regression'):
         importances = getattr(trained_model.named_steps['model'], attr)[0]
     else:
@@ -122,7 +87,36 @@ def feature_importances(model_name, trained_model, top_n=12):
     ax.set_title(f"Top {plot_len} Features Importance/Coefficients")
     st.pyplot(fig)
 
+def fit_clusters(df, model, k=None):
+    model_class, param_name = maps.unsup_models[model]
+    if param_name:
+        model = model_class(**{param_name: k})
+    else:
+        model = model_class()
+    predictions = model.fit_predict(df)
+    return predictions
 
+def visualize_clusters(df, predictions):
+    # Use PCA to reduce dimensionality to 2D
+    pca = PCA(n_components=2)
+    reduced_features = pca.fit_transform(df)
+
+    # Get unique cluster labels
+    unique_clusters = list(set(predictions))
+
+    # Create a scatter plot for each cluster
+    for cluster_label in unique_clusters:
+        cluster_indices = predictions == cluster_label
+        plt.scatter(reduced_features[cluster_indices, 0], reduced_features[cluster_indices, 1],
+                    label=f'Cluster {cluster_label}', alpha=0.5)
+
+    plt.title("Clustering Results (PCA)")
+    plt.xlabel("Principal Component 1")
+    plt.ylabel("Principal Component 2")
     
+    # Add legend
+    plt.legend()
+
+    st.pyplot()
 
     

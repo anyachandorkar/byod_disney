@@ -11,12 +11,15 @@ models = ["", "Random Forest (Classifier)",
         "XGBoost (Classifier)",
         "Logistic Regression",
         "K-Nearest Neighbors (Classifier)"]
+
 eval_metrics = [
     'Accuracy',
     'Precision',
     'Recall',
     'Confusion Matrix',
     'F1 Score']
+
+# To save history of model results with same dataset 
 session_state = st.session_state
 if not hasattr(session_state, 'model_history'):
     session_state.model_history = {}
@@ -97,11 +100,10 @@ if class_file:
             else:
                 results = model_dev.evaluate_model(y_test, predictions, metric, X)
             st.write(results)
-            
-            session_state.model_history[user_model] = {'metric': metric, 'result': results}
 
             # Display model history
             st.subheader("Model History")
+            session_state.model_history[user_model] = {'metric': metric, 'result': results}
             for model, history in session_state.model_history.items():
                 st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
             

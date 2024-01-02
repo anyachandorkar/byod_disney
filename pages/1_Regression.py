@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import Home
 import data_validity
 import model_dev
 from sklearn.model_selection import train_test_split
@@ -10,12 +9,18 @@ models = ["", "Random Forest (Regressor)",
         "XGBoost (Regressor)",
         "Linear Regression",
         "K-Nearest Neighbors (Regressor)"]
+
 eval_metrics = [
     'MAE',
     'MSE',
     'RMSE',
     'R2',
     'Adjusted R2']
+
+# To save history of model results with same dataset 
+session_state = st.session_state
+if not hasattr(session_state, 'model_history'):
+    session_state.model_history = {}
 
 st.header("Choose your cleaned CSV file")
 reg_file = st.file_uploader("Choose a CSV file", type="csv")
@@ -49,16 +54,25 @@ if reg_file:
         # Providing option to exclude columns from training dataset 
         exclude_input = st.text_input("Exclude Columns (type names, comma-separated)", "")
         if exclude_input:
+            original_df = df.copy()
+
             # Deletes all columns entered from dataset 
             st.write(exclude_input)
             st.write(data_validity.fuzzy_matching(df, exclude_input))
             df = df.drop(columns = data_validity.fuzzy_matching(df, exclude_input))
+
+            # Display an "Undo" button
+            if st.button("Undo"):
+                df = original_df  # Revert to the original DataFrame
+
         st.write("Preview of Transformed DataFrame")
         st.write(df.head())
         
         # Option to select model 
+        st.subheader('Model Selection')
         user_model = st.selectbox("Choose Your Model", list(models))
         if user_model != "": 
+            
             # Once model is chosen separate features and target variable 
             X = df.drop(columns = [target_variable])
             y = df[target_variable]
@@ -80,5 +94,9 @@ if reg_file:
             results = model_dev.evaluate_model(y_test, predictions, metric, X)
             st.write(results)
 
+            st.subheader("Model History")
+            for model, history in session_state.model_history.items():
+                st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
+            
             # Running and visualizing feature importances if applicable to model 
             model_dev.feature_importances(user_model, trained_model)
