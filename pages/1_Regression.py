@@ -5,6 +5,10 @@ import model_dev
 from sklearn.model_selection import train_test_split
 from fuzzywuzzy import process
 
+st.set_page_config(
+    page_title="Regression",
+    page_icon="🏰",
+)
 models = ["", "Random Forest (Regressor)",
         "XGBoost (Regressor)",
         "Linear Regression",
@@ -19,12 +23,17 @@ eval_metrics = [
 
 # To save history of model results with same dataset 
 session_state = st.session_state
-if not hasattr(session_state, 'model_history'):
-    session_state.model_history = {}
+if not hasattr(session_state, 'reg_model_history'):
+    session_state.reg_model_history = {}
 
-st.header("Choose your cleaned CSV file")
+st.header("Choose your cleaned CSV file 🍯")
 reg_file = st.file_uploader("Choose a CSV file", type="csv")
 if reg_file: 
+    # Clears model history if new dataset is uploaded 
+    if not hasattr(session_state, 'reg_current_dataset') or session_state.reg_current_dataset != reg_file:
+        session_state.reg_model_history = {}
+        session_state.reg_current_dataset = reg_file
+
     # Visualizing uploaded dataset 
     df = pd.read_csv(reg_file)
     if 'Unnamed: 0' in df.columns:
@@ -39,26 +48,37 @@ if reg_file:
 
     if confirm_target:
         # Checking dataset for any outliers to warn user before training 
+        st.header('Outlier Check')
         outlier_check = data_validity.check_outliers(df[target_variable])
         st.warning(f"Outlier Check: {outlier_check}")
         if outlier_check:
             st.warning("You may want to handle outliers using imputation techniques to balance your dataset before training.")
         
         # Plotting distribution of target variable 
+        st.subheader("Visualize Target Variable Distribution")
         data_validity.visualize_target_variable(df, target_variable, "Regression")
         
-        # Providing adjustable train test split options 
-        st.header("Train-Test Split Options")
-        test_size = st.slider("Select Test Size:", min_value=0.1, max_value=0.5, value=0.2, step=0.01)
-        
+        # Checking for multicollinearity among variables 
+        st.header("Feature Selection")
+        multicollinear_vars = data_validity.check_multicollinearity(df)
+        if multicollinear_vars[0]:
+            st.warning('Multicollinearity Check: True')
+            st.warning('Consider streamlining dataset based on highly correlated feature pairs')
+            st.subheader('Correlated Features:')
+            for pair in multicollinear_vars[0]:
+                st.write(pair)
+            st.pyplot(multicollinear_vars[1])
+        else:
+            st.warning('Multicollinearity Check: False')
+            st.write('No highly correlated features to streamline')
+
         # Providing option to exclude columns from training dataset 
+        st.subheader("Data Subsetting")
         exclude_input = st.text_input("Exclude Columns (type names, comma-separated)", "")
         if exclude_input:
             original_df = df.copy()
 
             # Deletes all columns entered from dataset 
-            st.write(exclude_input)
-            st.write(data_validity.fuzzy_matching(df, exclude_input))
             df = df.drop(columns = data_validity.fuzzy_matching(df, exclude_input))
 
             # Display an "Undo" button
@@ -69,10 +89,14 @@ if reg_file:
         st.write(df.head())
         
         # Option to select model 
-        st.subheader('Model Selection')
+        st.header('Model Testing')
+
+        # Providing adjustable train test split options 
+        test_size = st.slider("Select Test Size:", min_value=0.1, max_value=0.5, value=0.2, step=0.01)
+        
         user_model = st.selectbox("Choose Your Model", list(models))
         if user_model != "": 
-            
+
             # Once model is chosen separate features and target variable 
             X = df.drop(columns = [target_variable])
             y = df[target_variable]
@@ -93,10 +117,13 @@ if reg_file:
             metric = st.selectbox("Choose your evaluation metric:", eval_metrics)
             results = model_dev.evaluate_model(y_test, predictions, metric, X)
             st.write(results)
-
+            
+            # Displaying model history with performance for comparison 
             st.subheader("Model History")
-            for model, history in session_state.model_history.items():
+            session_state.reg_model_history[user_model] = {'metric': metric, 'result': results}
+            for model, history in session_state.reg_model_history.items():
                 st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
             
             # Running and visualizing feature importances if applicable to model 
+            st.header("Feature Importance")
             model_dev.feature_importances(user_model, trained_model)

@@ -7,6 +7,7 @@ import numpy as np
 import streamlit as st 
 import maps 
 from sklearn.decomposition import PCA
+from sklearn.metrics import davies_bouldin_score, silhouette_score
     
 def preprocess_data(X, text_columns=[]):
     """
@@ -95,6 +96,11 @@ def fit_clusters(df, model, k=None):
         model = model_class()
     predictions = model.fit_predict(df)
     return predictions
+
+def evaluate_clusters(df, predictions, metric):
+    metrics = {'dbs': davies_bouldin_score,
+     'ss':silhouette_score}
+    return metrics[metric](df, predictions)
 
 def visualize_clusters(df, predictions):
     # Use PCA to reduce dimensionality to 2D

@@ -21,7 +21,6 @@ def check_imbalance(series, threshold=0.25):
 
 # Function to visualize target variable distribution based on problem type
 def visualize_target_variable(df, target_variable, problem_type):
-    st.header("Visualize Target Variable Distribution")
 
     if problem_type == "Classification":
         # Bar chart for classification
@@ -54,10 +53,30 @@ def fuzzy_matching(df, user_input):
 
     return selected_columns
 
-def text_column_extraction(df, user_input):
-    user_text_columns = [col.strip() for col in user_input.split(',')]
-    return user_text_columns
-    # Use fuzzy matching to find the closest matches in the dataset
-    available_columns = df.columns.tolist()
-    matched_columns, _ = process.extract(user_text_columns, available_columns)
-    return matched_columns
+def check_multicollinearity(df, threshold=0.8):
+    """
+    Check multicollinearity among predictor variables in a DataFrame.
+
+    Parameters:
+    - df: DataFrame, input dataset
+    - threshold: float, correlation threshold to identify multicollinearity
+
+    Returns:
+    - multicollinear_vars: list, pairs of variables with correlation above the threshold
+    """
+    # Exclude non-numeric columns
+    numeric_vars = df.select_dtypes(include=['number']).columns
+
+    # Calculate correlation matrix
+    correlation_matrix = df[numeric_vars].corr()
+
+    # Extract pairs of highly correlated variables
+    multicollinear_vars = []
+    for i in range(len(correlation_matrix.columns)):
+        for j in range(i):
+            if abs(correlation_matrix.iloc[i, j]) > threshold:
+                multicollinear_vars.append((correlation_matrix.columns[i], correlation_matrix.columns[j]))
+    plt.figure(figsize=(4, 3))
+    sns.heatmap(df[numeric_vars].corr(), annot=True, cmap='coolwarm', fmt=".2f")
+    plt.title("Correlation Matrix")
+    return [multicollinear_vars, plt]

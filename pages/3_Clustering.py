@@ -1,26 +1,57 @@
 import streamlit as st
 import pandas as pd
-import Home
+import HOme
 import data_validity
 import model_dev
 from fuzzywuzzy import process
+from collections import defaultdict 
+
+st.set_page_config(
+    page_title="Clustering",
+    page_icon="🏰",
+)
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
-models = ["K-Means",
+models = ["","K-Means",
     "DBSCAN",
     "GMM",
     "Agglomerative"]
 
-st.header("Choose your cleaned CSV file")
-reg_file = st.file_uploader("Choose a CSV file", type="csv")
-if reg_file: 
+# Setting session state 
+session_state = st.session_state
+if not hasattr(session_state, 'clu_model_history'):
+    session_state.clu_model_history = {}
+
+st.header("Choose your cleaned CSV file 🍯")
+clu_file = st.file_uploader("Choose a CSV file", type="csv")
+
+if clu_file: 
+    # Clears model history if new dataset is uploaded 
+    if not hasattr(session_state, 'clu_current_dataset') or session_state.clu_current_dataset != clu_file:
+        session_state.clu_model_history = {}
+        session_state.clu_current_dataset = clu_file
+
     # Visualizing uploaded dataset 
-    df = pd.read_csv(reg_file)
+    df = pd.read_csv(clu_file)
     if 'Unnamed: 0' in df.columns:
         df = df.drop(columns = ['Unnamed: 0'])
     st.dataframe(df.head())
 
+    st.header("Feature Selection")
+    multicollinear_vars = data_validity.check_multicollinearity(df)
+    if multicollinear_vars[0]:
+        st.warning('Multicollinearity Check: True')
+        st.warning('Consider streamlining dataset based on highly correlated feature pairs')
+        st.subheader('Correlated Features:')
+        for pair in multicollinear_vars[0]:
+            st.write(pair)
+        st.pyplot(multicollinear_vars[1])
+    else:
+        st.warning('Multicollinearity Check: False')
+        st.write('No highly correlated features to streamline')
+
     # Providing option to exclude columns from training dataset 
+    st.subheader("Data Subsetting")
     exclude_input = st.text_input("Exclude Columns (type names, comma-separated)", "")
     if exclude_input:
         original_df = df.copy()
@@ -36,27 +67,35 @@ if reg_file:
     st.write(df.head())
 
     # Option to select model 
-    st.subheader("Model Selection")
+    st.header("Model Testing")
     user_model = st.selectbox("Choose Your Model", list(models))
     if user_model != "":
         k=None
         if user_model in ["K-Means","GMM","Agglomerative"]:
             k = st.slider("Number of Clusters (k)", min_value=2, max_value=10, value=3)
-        preprocessor = model_dev.preprocess_data(df)
-        # Run clustering
-        if st.button("Run Clustering"):
-            trained_model = model_dev.fit_clusters(preprocessor.fit_transform(df), user_model, k)
-            
-            # Show predictions 
-            st.write("Clustering Predictions:")
-            df['Cluster'] = trained_model
-            st.write(df)
-            download_button = st.download_button(
-            label="Download DataFrame with Clusters",
-            key="download_clusters",
-            data=df.to_csv(index=False),
-            file_name="clusters_data.csv",
-            mime="text/csv")
+        preprocessor = model_dev.preprocess_data(df).fit_transform(df)
+        trained_model = model_dev.fit_clusters(preprocessor, user_model, k)
+        
+        # Display predictions 
+        st.subheader("Clustering Predictions:")
+        df['Cluster'] = trained_model
+        st.write(df)
+        download_button = st.download_button(
+        label="Download DataFrame with Clusters",
+        key="download_clusters",
+        data=df.to_csv(index=False),
+        file_name="clusters_data.csv",
+        mime="text/csv")
 
-            # Show clusters
-            model_dev.visualize_clusters(preprocessor.fit_transform(df), trained_model)
+        user_m = st.selectbox("Choose Your METRIC",['dbs', 'ss'])
+        results = model_dev.evaluate_clusters(preprocessor, trained_model, user_m)
+        
+        # Display model history
+        st.subheader("Model History")
+        session_state.clu_model_history[user_model] = {'metric': user_m, 'result': results}
+        for model, history in session_state.clu_model_history.items():
+            st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
+        
+        # Display clusters 
+        st.subheader("Cluster Visualization")
+        model_dev.visualize_clusters(preprocessor, trained_model)

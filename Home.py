@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd 
-
 st.set_page_config(
     page_title="BYOD",
     page_icon="🏰",
 )
+import streamlit as st
 
-st.write("# Welcome to Bring Your Own Data! 👋")
+st.write("# Welcome to Bring Your Own Data! 🍯")
 st.header("Upload your CSV file")
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:

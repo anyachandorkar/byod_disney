@@ -5,6 +5,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
+import numpy as np 
 
 # supervised model map 
 sup_models = {
