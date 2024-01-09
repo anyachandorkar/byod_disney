@@ -7,7 +7,8 @@ import numpy as np
 import streamlit as st 
 import maps 
 from sklearn.decomposition import PCA
-from sklearn.metrics import davies_bouldin_score, silhouette_score
+from sklearn.metrics import davies_bouldin_score, silhouette_score, adjusted_rand_score
+from sklearn.model_selection import GridSearchCV, ParameterGrid
     
 def preprocess_data(X, text_columns=[]):
     """
@@ -30,7 +31,7 @@ def preprocess_data(X, text_columns=[]):
     
     return preprocessor
 
-def fit_model(X_train, y_train, preprocessor, user_model):
+def fit_model(X_train, y_train, preprocessor, user_model, param=False):
     """
     Fit the model on the training data.
     """
@@ -42,8 +43,18 @@ def fit_model(X_train, y_train, preprocessor, user_model):
         ('model', model)])
     if num_classes>2 and user_model=='XGBoost (Classifier)':
         model.set_params(objective='multi:softprob', num_class=num_classes)
-    pipeline.fit(X_train, y_train_encoded)
-    return pipeline
+    if param:
+        param_grid = maps.sup_models[user_model][2]
+        grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy')
+        grid_search.fit(X_train, y_train_encoded)
+        st.info(f"Optimal Hyper Parameters: {grid_search.best_params_}")
+        # Get the best model from grid search
+        best_model = grid_search.best_estimator_
+    else:
+        pipeline.fit(X_train, y_train_encoded)
+        best_model = pipeline
+    
+    return best_model
 
 def predict_model(model, X_test):
     """
@@ -89,20 +100,24 @@ def feature_importances(model_name, trained_model, top_n=12):
     st.pyplot(fig)
 
 def fit_clusters(df, model, k=None):
-    model_class, param_name = maps.unsup_models[model]
+    model_class, param_name= maps.unsup_models[model]
     if param_name:
         model = model_class(**{param_name: k})
     else:
         model = model_class()
+
     predictions = model.fit_predict(df)
+    st.info("No parameters available to tune.")
+
     return predictions
 
 def evaluate_clusters(df, predictions, metric):
-    metrics = {'dbs': davies_bouldin_score,
-     'ss':silhouette_score}
+    metrics = {'Davies Bouldin Score': davies_bouldin_score,
+     'Silhouette Score':silhouette_score}
     return metrics[metric](df, predictions)
 
 def visualize_clusters(df, predictions):
+    plt.clf()
     # Use PCA to reduce dimensionality to 2D
     pca = PCA(n_components=2)
     reduced_features = pca.fit_transform(df)

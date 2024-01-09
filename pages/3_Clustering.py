@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import HOme
+import Home
 import data_validity
 import model_dev
 from fuzzywuzzy import process
@@ -41,11 +41,11 @@ if clu_file:
     multicollinear_vars = data_validity.check_multicollinearity(df)
     if multicollinear_vars[0]:
         st.warning('Multicollinearity Check: True')
-        st.warning('Consider streamlining dataset based on highly correlated feature pairs')
         st.subheader('Correlated Features:')
         for pair in multicollinear_vars[0]:
             st.write(pair)
         st.pyplot(multicollinear_vars[1])
+        st.warning('Consider streamlining dataset based on highly correlated feature pairs')
     else:
         st.warning('Multicollinearity Check: False')
         st.write('No highly correlated features to streamline')
@@ -87,12 +87,18 @@ if clu_file:
         file_name="clusters_data.csv",
         mime="text/csv")
 
-        user_m = st.selectbox("Choose Your METRIC",['dbs', 'ss'])
-        results = model_dev.evaluate_clusters(preprocessor, trained_model, user_m)
-        
+        metric = st.selectbox("Choose Your METRIC",['Davies Bouldin Score', 'Silhouette Score'])
+        results = model_dev.evaluate_clusters(preprocessor, trained_model, metric)
+        if metric== 'Silhouette Score':
+            if results<0.7:
+                st.warning('You may want to fine tune your model or use another one.')
+            else:
+                st.success('Nice performance!')
+        #else:
+
         # Display model history
         st.subheader("Model History")
-        session_state.clu_model_history[user_model] = {'metric': user_m, 'result': results}
+        session_state.clu_model_history[user_model] = {'metric': metric, 'result': results}
         for model, history in session_state.clu_model_history.items():
             st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
         
