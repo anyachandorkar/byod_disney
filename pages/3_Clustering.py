@@ -6,6 +6,19 @@ import model_dev
 from fuzzywuzzy import process
 from collections import defaultdict 
 
+'''
+Code for Clustering Tab
+Includes: 
+    - Multicollinearity check 
+    - Data subsetting 
+    - Model selection and evaluation 
+    - Model history 
+    - Data with cluster download 
+    - Cluster visualization  
+    - Model deployment 
+
+'''
+
 st.set_page_config(
     page_title="Clustering",
     page_icon="🏰",
@@ -75,7 +88,6 @@ if clu_file:
             k = st.slider("Number of Clusters (k)", min_value=2, max_value=10, value=3)
         preprocessor = model_dev.preprocess_data(df).fit_transform(df)
         trained_model = model_dev.fit_clusters(preprocessor, user_model, k)
-        
         # Display predictions 
         st.subheader("Clustering Predictions:")
         df['Cluster'] = trained_model

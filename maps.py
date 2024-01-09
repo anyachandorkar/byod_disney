@@ -7,6 +7,15 @@ from xgboost import XGBClassifier, XGBRegressor
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
 import numpy as np 
 
+'''
+Code for Dictionary mapping 
+
+Includes: 
+    - Metric name to metric function
+    - Param grids for all models 
+    - Model name to model function, coefficient extraction function, and param grids
+    for both supervised and unsupervised models 
+'''
 # evaluation metric map 
 metrics = {'Confusion Matrix': confusion_matrix,
     'Accuracy': accuracy_score,

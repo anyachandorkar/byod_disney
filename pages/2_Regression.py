@@ -5,6 +5,18 @@ import model_dev
 from sklearn.model_selection import train_test_split
 from fuzzywuzzy import process
 
+'''
+Code for Regression Tab
+
+Includes:
+    - Outlier check 
+    - Multicollinearity check 
+    - Data subsetting 
+    - Model selection and evaluation 
+    - Model history 
+    - Feature importance 
+    - Model deployment 
+'''
 st.set_page_config(
     page_title="Regression",
     page_icon="🏰",

@@ -4,6 +4,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from fuzzywuzzy import process
 
+'''
+Code for functions related to data exploration, visualization, extraction
+
+Includes: 
+    - Outlier and imbalance check functions 
+    - Feature visualization function
+    - Fuzzy matching function
+    - Multicollinearity check function 
+'''
 def check_outliers(series, threshold=1.5):
     q1 = series.quantile(0.25)
     q3 = series.quantile(0.75)

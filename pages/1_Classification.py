@@ -6,6 +6,20 @@ import model_dev
 from sklearn.model_selection import train_test_split
 from fuzzywuzzy import process
 import numpy as np
+import joblib 
+
+'''
+Code for Classification Tab
+Includes:
+    - Imbalance check 
+    - Multicollinearity check 
+    - Data subsetting 
+    - Model selection and evaluation 
+    - Model history 
+    - Feature importance 
+    - Model deployment 
+
+'''
 
 models = ["", "Random Forest (Classifier)",
         "XGBoost (Classifier)",
@@ -63,8 +77,12 @@ if cls_file:
             st.warning('Multicollinearity Check: True')
             st.warning('Consider streamlining dataset based on highly correlated feature pairs')
             st.subheader('Correlated Features:')
+
+            # Visualize feature pairs 
             for pair in multicollinear_vars[0]:
                 st.write(pair)
+            
+            # Visualize feature heatmap 
             st.pyplot(multicollinear_vars[1])
         else:
             st.warning('Multicollinearity Check: False')
@@ -86,16 +104,6 @@ if cls_file:
         # Visualizing training dataset 
         st.write("Preview of Transformed DataFrame")
         st.write(df.head())
-        
-        text_cols_input = st.checkbox("Do you have any text columns?")
-        if text_cols_input:
-            user_input = st.text_area("List the text columns (comma-separated)", "")
-            matched_columns = data_validity.fuzzy_matching(df, user_input)
-            st.write("Matched text columns:", matched_columns)
-            st.write(type(matched_columns))
-            st.write(df[matched_columns])
-        else:
-            matched_columns = []
 
         # Option to select model 
         st.header("Model Testing")
@@ -114,7 +122,7 @@ if cls_file:
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             
             # Preprocessing input of data to be read by model 
-            preprocessor = model_dev.preprocess_data(X_train, matched_columns)
+            preprocessor = model_dev.preprocess_data(X_train)
             
             # Fitting model 
             trained_model = model_dev.fit_model(X_train, y_train, preprocessor, user_model, confirm_param)
@@ -131,6 +139,7 @@ if cls_file:
                 results = model_dev.evaluate_model(y_test, predictions, metric, X)
             st.write(results)
 
+            # Gives conditional feedback based on performance 
             if metric!='Confusion Matrix':
                 if results>0.70:
                     st.success('Nice performance!')
@@ -146,4 +155,11 @@ if cls_file:
             # Running and visualizing feature importances if applicable to model 
             st.header("Feature Importance")
             model_dev.feature_importances(user_model, trained_model)
-        
+
+            # Save and load the trained model
+            st.header("Model Deployment")
+            save_model = st.button("Save Model")
+            if save_model:
+                model_filename = f"{user_model.lower()}_model.joblib"
+                joblib.dump(trained_model, model_filename)
+                st.success(f"Model saved as {model_filename}")
