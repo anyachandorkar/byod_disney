@@ -4,15 +4,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from fuzzywuzzy import process
 
-'''
-Code for functions related to data exploration, visualization, extraction
-
-Includes: 
-    - Outlier and imbalance check functions 
-    - Feature visualization function
-    - Fuzzy matching function
-    - Multicollinearity check function 
-'''
 def check_outliers(series, threshold=1.5):
     q1 = series.quantile(0.25)
     q3 = series.quantile(0.75)
@@ -23,6 +14,10 @@ def check_outliers(series, threshold=1.5):
 
 # Function to check for imbalance in a categorical series
 def check_imbalance(series, threshold=0.25):
+    '''
+    If the minority class in target variable constitutes less than 25% of the total 
+    function flags as imbalance
+    '''
     class_counts = series.value_counts()
     minority_class = class_counts.idxmin()
     minority_percentage = class_counts.min() / class_counts.sum()
@@ -51,8 +46,10 @@ def visualize_target_variable(df, target_variable, problem_type):
 
 def fuzzy_matching(df, user_input):
     # Get a list of column names from the DataFrame
-    column_names = df.columns.tolist()
-
+    if type(df)!=list:
+        column_names = df.columns.tolist()
+    else:
+        column_names = df
     # Use fuzzy matching to find the closest matches to the user input
     matches = process.extractBests(user_input, column_names)
 
@@ -62,16 +59,10 @@ def fuzzy_matching(df, user_input):
 
     return selected_columns
 
-def check_multicollinearity(df, threshold=0.8):
+def check_multicollinearity(df, threshold=0.69):
     """
-    Check multicollinearity among predictor variables in a DataFrame.
-
-    Parameters:
-    - df: DataFrame, input dataset
-    - threshold: float, correlation threshold to identify multicollinearity
-
-    Returns:
-    - multicollinear_vars: list, pairs of variables with correlation above the threshold
+    Check multicollinearity among predictor variables in a DataFrame. If there are feature pairs 
+    that have correlation coefficient greater than 0.69 threshold, they will be returned
     """
     # Exclude non-numeric columns
     numeric_vars = df.select_dtypes(include=['number']).columns

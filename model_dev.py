@@ -4,6 +4,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd 
+import seaborn as sns 
 import streamlit as st 
 import maps 
 from sklearn.decomposition import PCA
@@ -27,7 +29,7 @@ def preprocess_data(X):
     """
     # Separate numerical and categorical columns 
     num_columns = X.select_dtypes(include=['int', 'float']).columns.tolist()
-    cat_columns = [col for col in X.columns if col not in num_columns and col not in text_columns]
+    cat_columns = [col for col in X.columns if col not in num_columns]
     
     # Create preprocessing pipeline to transform columns into model input
     preprocessor = ColumnTransformer(
@@ -48,7 +50,7 @@ def fit_model(X_train, y_train, preprocessor, user_model, param=False):
     """
 
     # Get model function using name mapping 
-    model = maps.sup_models[user_model][0]
+    model = maps.model_map[user_model][0]
 
     # Condition to differentiate between multiclassification and binary classification problems 
     num_classes = len(np.unique(y_train))
@@ -65,7 +67,7 @@ def fit_model(X_train, y_train, preprocessor, user_model, param=False):
     
     # If user chooses to tune parameters extract mapping and apply grid search cv to get best model
     if param:
-        param_grid = maps.sup_models[user_model][2]
+        param_grid = maps.model_map[user_model][2]
         grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy')
         grid_search.fit(X_train, y_train_encoded)
 
@@ -87,19 +89,20 @@ def predict_model(model, X_test):
     predictions = model.predict(X_test)
     return predictions
 
-def evaluate_model(y_true, y_pred, metric, X, average='binary'):
+def evaluate_model(y_test, y_pred, metric, X, average='binary'):
     """
     Evaluate the model using user specified metric.
     """
     # Preprocess test data prior to comparison 
-    y_true_encoded = LabelEncoder().fit_transform(y_true)
+    y_true_encoded = LabelEncoder().fit_transform(y_test)
 
     if metric == "Adjusted R2":
-        return maps.metrics[metric](y_true, y_pred, X)
+        return maps.metrics[metric](y_test, y_pred, X)
     if metric in ['Precision', 'Recall', 'F1 Score']:
         return maps.metrics[metric](y_true_encoded, y_pred, average=average)
     else:
         return maps.metrics[metric](y_true_encoded, y_pred)
+
 
 def feature_importances(model_name, trained_model, top_n=12):
     """
@@ -110,7 +113,7 @@ def feature_importances(model_name, trained_model, top_n=12):
         return 
     
     # Extract appropriate coefficient attribute for model from mapping 
-    attr = maps.sup_models[model_name][1]
+    attr = maps.model_map[model_name][1]
     if model_name in ('Logistic Regression'):
         importances = getattr(trained_model.named_steps['model'], attr)[0]
     else:
@@ -138,7 +141,8 @@ def fit_clusters(df, model, k=None):
     Fit clustering model using user input k if given 
     """
     # Extract model function and cluster attribute from mapping 
-    model_class, param_name= maps.unsup_models[model]
+    model_class= maps.model_map[model][0]
+    param_name = maps.model_map[model][1]
 
     if param_name:
         model = model_class(**{param_name: k})

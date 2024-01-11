@@ -1,30 +1,16 @@
 import streamlit as st
 import pandas as pd
-import Home
 import data_validity
 import model_dev
-from fuzzywuzzy import process
-from collections import defaultdict 
-
-'''
-Code for Clustering Tab
-Includes: 
-    - Multicollinearity check 
-    - Data subsetting 
-    - Model selection and evaluation 
-    - Model history 
-    - Data with cluster download 
-    - Cluster visualization  
-    - Model deployment 
-
-'''
+import joblib 
 
 st.set_page_config(
     page_title="Clustering",
     page_icon="🏰",
 )
-
 st.set_option('deprecation.showPyplotGlobalUse', False)
+
+st.write("# 🏰 Welcome to Clustering!")
 models = ["","K-Means",
     "DBSCAN",
     "GMM",
@@ -101,12 +87,7 @@ if clu_file:
 
         metric = st.selectbox("Choose Your METRIC",['Davies Bouldin Score', 'Silhouette Score'])
         results = model_dev.evaluate_clusters(preprocessor, trained_model, metric)
-        if metric== 'Silhouette Score':
-            if results<0.7:
-                st.warning('You may want to fine tune your model or use another one.')
-            else:
-                st.success('Nice performance!')
-        #else:
+        st.write(results)
 
         # Display model history
         st.subheader("Model History")
@@ -117,3 +98,11 @@ if clu_file:
         # Display clusters 
         st.subheader("Cluster Visualization")
         model_dev.visualize_clusters(preprocessor, trained_model)
+        
+        # Save and load the trained model
+        st.header("Model Deployment")
+        save_model = st.button("Save Model")
+        if save_model:
+            model_filename = f"{user_model.lower()}_model.joblib"
+            joblib.dump(trained_model, model_filename)
+            st.success(f"Model saved as {model_filename}")

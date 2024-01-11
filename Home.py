@@ -3,18 +3,11 @@ import pandas as pd
 import streamlit as st
 from fuzzywuzzy import process
 import data_validity
-
-'''
-Code for Home page 
-Includes 
-    - Null value check 
-    - Stats and feature based visualization 
-'''
-
 st.set_page_config(page_title="BYOD", page_icon="🏰")
 
-st.write("# Welcome to Bring Your Own Data! 🍯")
-st.header("Upload your CSV file")
+st.image('img/disney.jpg')
+st.write("# 🏰 Welcome to Bring Your Own Data!")
+st.header("Upload your CSV file 🍯")
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 if uploaded_file is not None:
     try:
@@ -46,5 +39,5 @@ if uploaded_file is not None:
                 else:
                     data_validity.visualize_target_variable(df, feature_variable, 'Classification')
     except Exception as e:
-            st.error(f"Error: {e}")
-            st.warning("Please ensure that the uploaded file is a valid CSV.")
+        st.error(f"Error: {e}")
+        st.warning("Please ensure that the uploaded file is a valid CSV.")

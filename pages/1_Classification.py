@@ -1,25 +1,17 @@
 import streamlit as st
 import pandas as pd
-import Home
 import data_validity
 import model_dev
 from sklearn.model_selection import train_test_split
 from fuzzywuzzy import process
 import numpy as np
 import joblib 
+st.set_page_config(
+    page_title="Classification",
+    page_icon="🏰",
+)
 
-'''
-Code for Classification Tab
-Includes:
-    - Imbalance check 
-    - Multicollinearity check 
-    - Data subsetting 
-    - Model selection and evaluation 
-    - Model history 
-    - Feature importance 
-    - Model deployment 
-
-'''
+st.write("# 🏰 Welcome to Classification!")
 
 models = ["", "Random Forest (Classifier)",
         "XGBoost (Classifier)",
@@ -153,7 +145,7 @@ if cls_file:
                 st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
             
             # Running and visualizing feature importances if applicable to model 
-            st.header("Feature Importance")
+            st.subheader("Feature Importance")
             model_dev.feature_importances(user_model, trained_model)
 
             # Save and load the trained model

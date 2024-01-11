@@ -4,23 +4,13 @@ import data_validity
 import model_dev
 from sklearn.model_selection import train_test_split
 from fuzzywuzzy import process
+import joblib
 
-'''
-Code for Regression Tab
-
-Includes:
-    - Outlier check 
-    - Multicollinearity check 
-    - Data subsetting 
-    - Model selection and evaluation 
-    - Model history 
-    - Feature importance 
-    - Model deployment 
-'''
 st.set_page_config(
     page_title="Regression",
     page_icon="🏰",
 )
+st.write("# 🏰 Welcome to the Regression!")
 models = ["", "Random Forest (Regressor)",
         "XGBoost (Regressor)",
         "Linear Regression",
@@ -75,11 +65,11 @@ if reg_file:
         multicollinear_vars = data_validity.check_multicollinearity(df)
         if multicollinear_vars[0]:
             st.warning('Multicollinearity Check: True')
-            st.warning('Consider streamlining dataset based on highly correlated feature pairs')
             st.subheader('Correlated Features:')
             for pair in multicollinear_vars[0]:
                 st.write(pair)
             st.pyplot(multicollinear_vars[1])
+            st.warning('Consider streamlining dataset based on highly correlated feature pairs')
         else:
             st.warning('Multicollinearity Check: False')
             st.write('No highly correlated features to streamline')
@@ -117,7 +107,7 @@ if reg_file:
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             
             # Preprocessing input of data to be read by model 
-            preprocessor = model_dev.preprocess_data(X_train, [])
+            preprocessor = model_dev.preprocess_data(X_train)
             
             # Fitting model 
             if user_model == 'Linear Regression':
@@ -150,7 +140,15 @@ if reg_file:
             session_state.reg_model_history[user_model] = {'metric': metric, 'result': results}
             for model, history in session_state.reg_model_history.items():
                 st.write(f"{model}: Metric={history['metric']}, Result={history['result']}")
-            
+
             # Running and visualizing feature importances if applicable to model 
-            st.header("Feature Importance")
+            st.subheader("Feature Importance")
             model_dev.feature_importances(user_model, trained_model)
+
+            # Save and load the trained model
+            st.header("Model Deployment")
+            save_model = st.button("Save Model")
+            if save_model:
+                model_filename = f"{user_model.lower()}_model.joblib"
+                joblib.dump(trained_model, model_filename)
+                st.success(f"Model saved as {model_filename}")
